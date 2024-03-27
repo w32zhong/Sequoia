@@ -215,7 +215,7 @@ def simulation_benchmark(target_model : GraphInferenceEngineTG, draft_model: Gra
 
 
 
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf", use_fast=False)
+tokenizer = AutoTokenizer.from_pretrained(args.model, use_fast=False)
 tokenizer.pad_token = tokenizer.eos_token
 eval_list = list(range(200, 2000))
 import random
@@ -243,7 +243,7 @@ else:
     if args.offloading:
         target_model = OffloadEngine(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0")
     else:
-        target_model =  GraphInferenceEngineTG(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0", offloading=args.offloading)
+        target_model =  GraphInferenceEngineTG(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0", offloading=False)
     graph_capture_list = list(range(1, 129))
     draft_model.initialize_cuda_graph(graph_capture_list)
     residual_graph = cuda_graph_for_residual()
