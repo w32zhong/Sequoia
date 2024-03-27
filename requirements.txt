@@ -1,0 +1,8 @@
+transformers==4.36.2
+accelerate==0.26.1
+datasets==2.16.1
+einops
+protobuf
+sentencepiece
+typing-extensions
+bitsandbytes
