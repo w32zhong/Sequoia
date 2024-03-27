@@ -78,6 +78,7 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
             while input_ids.shape[1] < 256 and terminate == False:
                 spectree.construct_grow_map()
                 valid_tokens, draft_kv_len, target_kv_len, terminate = spectree.verify()
+                print(tokenizer.decode(valid_tokens))
                 
                 num_decoding_steps += (valid_tokens.shape[0] - input_ids.shape[1])
                 num_large_model_steps += 1
@@ -125,6 +126,7 @@ def simulation_baseline(target_model : GraphInferenceEngineTG, dataloader: DataL
                 
                 
                 new_token = logits.argmax(dim=-1).reshape(1,1)
+                print(tokenizer.decode(new_token[0]), end=' ', flush=True)
                 input_ids = new_token
                 num_decoding_steps += 1
                 inner_decoding_step += 1
