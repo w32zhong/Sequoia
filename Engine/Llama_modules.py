@@ -119,7 +119,8 @@ class LlamaAttention_FI(nn.Module):
         
         key_states, value_states = kv_cache.update_kv_cache(key_states, value_states, 
                                         self.layer_idx, storage_ids=storage_ids, debug=debug)
-
+        key_states = key_states.to(device=query_states.device)
+        value_states = value_states.to(device=query_states.device)
         
         key_states = repeat_kv(key_states, self.num_key_value_groups)
         value_states = repeat_kv(value_states, self.num_key_value_groups)
@@ -216,6 +217,8 @@ class LlamaAttention_TG(nn.Module):
         
         key_states, value_states = kv_cache.update_kv_cache(key_states, value_states, 
                                         self.layer_idx, storage_ids=storage_ids, debug=debug)
+        key_states = key_states.to(device=query_states.device)
+        value_states = value_states.to(device=query_states.device)
         
         kv_len = kv_cache.get_usable_length(layer_idx=self.layer_idx, input_length=len(storage_ids))
         key_states = key_states[..., :kv_len, :]
@@ -411,6 +414,8 @@ class LlamaDecoderLayer_TG(nn.Module):
         
         hidden_states = self.mlp(hidden_states)
         
+        if residual.device != hidden_states.device:
+            residual = residual.to(device=hidden_states.device)
         hidden_states = residual + hidden_states
         
         return hidden_states

@@ -78,7 +78,7 @@ class InferenceEngineTG:
 
             self.model = accelerate.cpu_offload(self.model, execution_device=self.device)
         else:
-            self.model = LlamaForCausalLM_TG.from_pretrained(model_name_or_path, torch_dtype=dtype, device_map=device, load_in_8bit=False)
+            self.model = LlamaForCausalLM_TG.from_pretrained(model_name_or_path, torch_dtype=dtype, device_map="auto", load_in_8bit=False)
             self.model.eval()
         self.model_config = self.model.config
 

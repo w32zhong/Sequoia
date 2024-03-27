@@ -81,8 +81,10 @@ class KV_Cache:
             assert input_length == new_k_cache.shape[-2]
             assert input_length == new_v_cache.shape[-2]
         
-        self.k_cache[layer_idx].index_copy_(dim=-2, index=storage_ids, source=new_k_cache)
-        self.v_cache[layer_idx].index_copy_(dim=-2, index=storage_ids, source=new_v_cache)
+        assert storage_ids.device == new_k_cache.device
+        d = self.k_cache[layer_idx].device
+        self.k_cache[layer_idx].index_copy_(dim=-2, index=storage_ids.to(device=d), source=new_k_cache.to(device=d))
+        self.v_cache[layer_idx].index_copy_(dim=-2, index=storage_ids.to(device=d), source=new_v_cache.to(device=d))
 
         if layer_idx == self.num_layers - 1:
             self.kv_offset += input_length
