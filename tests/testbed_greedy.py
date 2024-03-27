@@ -75,10 +75,13 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
                                     sample_gather_indices = sample_gather_indices)
             torch.cuda.synchronize()
             t1 = time.time()
+
+            old_tokens = []
             while input_ids.shape[1] < 256 and terminate == False:
                 spectree.construct_grow_map()
                 valid_tokens, draft_kv_len, target_kv_len, terminate = spectree.verify()
-                print(tokenizer.decode(valid_tokens))
+                print(tokenizer.decode(valid_tokens[len(old_tokens):]), end=' ', flush=True)
+                old_tokens = valid_tokens
                 
                 num_decoding_steps += (valid_tokens.shape[0] - input_ids.shape[1])
                 num_large_model_steps += 1
