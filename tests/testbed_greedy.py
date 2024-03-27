@@ -77,7 +77,7 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
             t1 = time.time()
 
             old_tokens = []
-            while input_ids.shape[1] < 256 and terminate == False:
+            while input_ids.shape[1] < 128 and terminate == False:
                 spectree.construct_grow_map()
                 valid_tokens, draft_kv_len, target_kv_len, terminate = spectree.verify()
                 print(tokenizer.decode(valid_tokens[len(old_tokens):]), end=' ', flush=True)
@@ -141,83 +141,6 @@ def simulation_baseline(target_model : GraphInferenceEngineTG, dataloader: DataL
             
     print("total time :{:.5f}s, latency :{:.5f}s, decoding step: {}".format(total_time, total_time / num_decoding_steps, num_decoding_steps))
     return num_decoding_steps
-def simulation_benchmark(target_model : GraphInferenceEngineTG, draft_model: GraphInferenceEngine, dataloader: DataLoader, T=0.6, top_p=0.9, 
-                max_length=512, residual_graph=None, grow_map=None, sampling_callables = None,
-                sample_gather_indices = None):
-    num_eval_steps = len(dataloader)
-    num_decoding_steps = 0
-    num_large_model_steps = 0
-    initialize_time = 0.0
-    speculate_time = 0.0
-    verify_time = 0.0
-    large_model_run = 0.0
-    accept_loop = 0.0
-    kv_select = 0.0
-    sample_time = 0.0
-    small_model_compute = 0.0
-    dtype = torch.float16
-    attn_mask = torch.full((max_length, max_length), torch.finfo(dtype).min, dtype=dtype, device='cuda:0')
-    sequence = torch.tensor(list(range(max_length)), device='cuda:0').long().unsqueeze(-1)
-    new_tokens_buffer =  torch.zeros(max_length).long().to('cuda:0')
-    parents_buffer =  torch.zeros(max_length).long().to('cuda:0')
-    position_ids = torch.zeros(max_length).long().to('cuda:0')
-    
-    with torch.no_grad():
-        for step, batch in tqdm(enumerate(dataloader), total=num_eval_steps):
-            input_ids = batch['input_ids'][..., :128]
-            labels = batch['labels'][..., :128]
-            terminate = False
-            if labels[0][-1] == -100: terminate = True
-            draft_kv_len = 0
-            target_kv_len = 0
-            attn_mask.fill_(torch.finfo(dtype).min)
-            spectree = GreedyTree(prefix=input_ids.squeeze(0), device='cuda:0', temperature=T,
-                                        top_p=top_p, 
-                                        draft_kv_len=draft_kv_len, target_kv_len=target_kv_len,
-                                        draft_model_engine=draft_model, target_model_engine=target_model, max_length=max_length, grow_map=grow_map,
-                                        attn_mask = attn_mask, sequence = sequence, new_tokens_buffer = new_tokens_buffer, 
-                                        parents_buffer = parents_buffer, 
-                                        position_ids = position_ids,
-                                        residual_graph = residual_graph,
-                                        sampling_callables=sampling_callables,
-                                        sample_gather_indices = sample_gather_indices)
-            while input_ids.shape[1] < 256 and terminate == False:
-                torch.cuda.synchronize()
-                t1 = time.time()
-                torch.cuda.synchronize()
-                t2 = time.time()
-                a, b = spectree.construct_grow_map(benchmark=True)
-                torch.cuda.synchronize()
-                t3 = time.time()
-                valid_tokens, draft_kv_len, target_kv_len, x, y, z, terminate = spectree.verify(benchmark=True)
-                torch.cuda.synchronize()
-                t4 = time.time()
-                initial_size = input_ids.shape[1]
-                input_ids = valid_tokens.unsqueeze(0)
-                
-                if (input_ids[0] == 2)._is_any_true() or (input_ids[0] == 0)._is_any_true() or input_ids.shape[1] >= 256: 
-                    terminate = True
-                if not terminate:
-                    sample_time += a
-                    small_model_compute += b
-                    large_model_run += x
-                    accept_loop += y
-                    kv_select += z
-                    initialize_time += (t2 - t1)
-                    speculate_time += (t3 - t2)
-                    verify_time += (t4 - t3)
-                    num_decoding_steps += (valid_tokens.shape[0] - initial_size)
-                    num_large_model_steps += 1
-            draft_model.clear_kv()
-            target_model.clear_kv()
-            if num_large_model_steps > 0:
-                print(num_decoding_steps / num_large_model_steps)
-    print("total decoding steps: {}".format(num_decoding_steps), "large model steps: {}".format(num_large_model_steps), "avg decoding step: {}".format(num_decoding_steps / num_large_model_steps))
-    print("initialization time:{}".format(initialize_time / num_large_model_steps), "speculate time: {}".format(speculate_time / num_large_model_steps),  "verify time: {}".format(verify_time / num_large_model_steps))
-    print("large model run: {}".format(large_model_run / num_large_model_steps) , "accept loop: {}".format(accept_loop / num_large_model_steps), "kv select: {}".format(kv_select / num_large_model_steps))
-    print("small model run: {}".format(small_model_compute / num_large_model_steps) , "sample time: {}".format(sample_time / num_large_model_steps))
-    return num_decoding_steps / num_large_model_steps
-
 
 
 tokenizer = AutoTokenizer.from_pretrained(args.model, use_fast=False)
