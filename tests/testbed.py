@@ -44,7 +44,7 @@ setup_seed(args.seed)
 
 def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInferenceEngine, dataloader: DataLoader, T=0.6, top_p=0.9,
             max_length=512, residual_graph=None, grow_map=None, sampling_callables = None,
-            sample_gather_indices = None):
+            sample_gather_indices = None, tokenizer=None):
     num_eval_steps = len(dataloader)
     num_decoding_steps = 0
     num_large_model_steps = 0
@@ -58,8 +58,9 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
     
     with torch.no_grad():
         for step, batch in tqdm(enumerate(dataloader), total=num_eval_steps):
-            input_ids = batch['input_ids'][..., :128]
-            labels = batch['labels'][..., :128]
+            input_ids = batch['input_ids']
+            labels = batch['labels']
+            prev_len = input_ids.shape[-1]
             terminate = False
             if labels[0][-1] == -100: terminate = True
             draft_kv_len = 0
@@ -76,6 +77,7 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
                                     sampling_callables=sampling_callables,
                                     sample_gather_indices = sample_gather_indices)
             torch.cuda.synchronize()
+            prompt_len = input_ids.shape[-1]
             t1 = time.time()
             while input_ids.shape[1] < 256 and terminate == False:
                 spectree.construct_grow_map()
@@ -84,7 +86,10 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
                 num_decoding_steps += (valid_tokens.shape[0] - input_ids.shape[1])
                 num_large_model_steps += 1
                 input_ids = valid_tokens.unsqueeze(0)
-                if (input_ids[0][-1] == 2) or (input_ids[0][-1] == 0): terminate = True
+                print(tokenizer.decode(input_ids[0][prev_len:]), flush=True, end=' ')
+                prev_len = input_ids.shape[-1]
+
+                if (input_ids[0][-1] == tokenizer.eos_token_id) or (input_ids[0][-1] == tokenizer.unk_token_id): terminate = True
             
             torch.cuda.synchronize()
             t2 = time.time()
@@ -295,4 +300,4 @@ elif args.Mode == 'baseline':
     simulation_baseline(target_model=target_model, dataloader=dataloader, T=args.T, top_p=args.P, max_length=args.M)
 elif args.Mode == 'greedy':
     simulation_fast(target_model=target_model, draft_model=draft_model, dataloader=dataloader, T=args.T, top_p=args.P,
-                                     max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices)
+                                     max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices, tokenizer=tokenizer)
