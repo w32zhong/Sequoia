@@ -21,7 +21,7 @@ def prepare():
     target_model =  GraphInferenceEngineTG(max_length=max_length, model_name_or_path=target, dtype=torch.float16, device="cuda:0")
 
     residual_graph = cuda_graph_for_residual()
-    path = '../L40_growmaps/68m_7b/growmaps/L40-CNN-68m-7b-stochastic.pt'
+    path = '../L40_growmaps/68m_7b/growmaps/L40-C4-68m-7b-greedy.pt'
     grow_map = torch.load(path)
 
     tree_size = grow_map["size"]
