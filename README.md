@@ -21,6 +21,11 @@ CUDA_VISIBLE_DEVICES=0 python testbed.py --model  JackFram/llama-68m   --target 
 sh run_3060x2.sh
 ```
 
+generate growmaps:
+```sh
+python tree_search.py --config ./rtx3060-config.json
+```
+
 ## Evaluations
 To reproduce the main results
 

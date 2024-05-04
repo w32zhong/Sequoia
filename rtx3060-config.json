@@ -1,0 +1,9 @@
+{
+    "acceptance_rate_vector": "acceptance-rate-vector.pt",
+    "max_depth": 10,
+    "max_budget": 160,
+    "draft_time": 30,
+    "valid_budget": [1, 2, 4, 8, 16, 32, 50, 150],
+    "target_time":[100, 100, 100, 120, 140, 180, 200, 300],
+    "dst": "rtx3060_tree.pt"
+}
