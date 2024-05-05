@@ -63,7 +63,7 @@ class InferenceEngineTG:
         model_name_or_path :str,
         dtype = torch.float16,
         device = "cuda:0",
-        offloading = False) -> None:
+        offloading = False, load_in_8bit=False) -> None:
         
         self.device = device
         self.dtype = dtype
@@ -78,7 +78,7 @@ class InferenceEngineTG:
 
             self.model = accelerate.cpu_offload(self.model, execution_device=self.device)
         else:
-            self.model = LlamaForCausalLM_TG.from_pretrained(model_name_or_path, torch_dtype=dtype, device_map="auto", load_in_8bit=False)
+            self.model = LlamaForCausalLM_TG.from_pretrained(model_name_or_path, torch_dtype=dtype, device_map="auto", load_in_8bit=load_in_8bit)
             self.model.eval()
         self.model_config = self.model.config
 
@@ -249,13 +249,14 @@ class GraphInferenceEngineTG:
         max_length:int,
         model_name_or_path :str,
         dtype = torch.float16,
+        load_in_8bit = False,
         device = "cuda:0",
         offloading = False) -> None:
 
         self.device = device
         self.dtype = dtype
         self.max_length = max_length
-        self.engine = InferenceEngineTG(max_length=max_length, model_name_or_path=model_name_or_path, dtype=dtype, device=device, offloading=offloading)
+        self.engine = InferenceEngineTG(max_length=max_length, model_name_or_path=model_name_or_path, dtype=dtype, device=device, offloading=offloading, load_in_8bit=load_in_8bit)
     def clear_kv(self):
         self.engine.clear_kv()
     
