@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.1.2-cuda12.1-cudnn8-runtime
+FROM pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime
 WORKDIR /workspace
 ADD ./LLM-common-eval/requirements.txt r1.txt
 RUN pip install -r r1.txt
