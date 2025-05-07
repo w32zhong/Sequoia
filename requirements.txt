@@ -1,8 +1,8 @@
 transformers==4.36.2
-accelerate==0.30.0
+accelerate
 datasets
 einops
 protobuf
 sentencepiece
 typing-extensions
-bitsandbytes
+fschat
